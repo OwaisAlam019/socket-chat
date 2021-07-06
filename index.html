@@ -2,7 +2,50 @@
 <html>
   <head>
     <title>Socket.IO chat</title>
+    <link rel="stylesheet" href="./style.css"> 
     <style>
+
+.sidenav {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    transition: 0.5s;
+    padding-top: 60px;
+  }
+  
+  .sidenav a {
+    padding: 8px 8px 8px 32px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: block;
+    transition: 0.3s;
+  }
+  
+  .sidenav a:hover {
+    color: #f1f1f1;
+  }
+  
+  .sidenav .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+  }
+  
+  @media screen and (max-height: 450px) {
+    .sidenav {padding-top: 15px;}
+    .sidenav a {font-size: 18px;}
+  }
+
+
+
       body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
       #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
@@ -15,10 +58,15 @@
       #messages > li:nth-child(odd) { background: #efefef; }
     </style>
   </head>
-  <body>
-    <span id="typing"></span>
+  <body onload="saveNickName()">
+    <span style="font-size:30px;cursor:pointer" onclick="openNav()">&#9776;</span>
+    <div id="mySidenav" class="sidenav">
+      <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+    </div>
+
     <ul id="messages"></ul>
     <form id="form" action="">
+      <span id="typing"></span>
       <input id="input" autocomplete="off" /><button>Send</button>
     </form>
     <script src="/socket.io/socket.io.js"></script>
@@ -27,19 +75,34 @@
     var form = document.getElementById("form")
     var input = document.getElementById("input")
     var messages = document.getElementById('messages')
+    var onlineUsers = document.getElementById('mySidenav')
     var typing = document.getElementById('typing')
+    var nickname = ""
+    
+   function saveNickName(){
+    nickname = prompt("Please Enter your name")
+      socket.emit("setNick",nickname)
+    }
 
     input.addEventListener("input",(e) => {
       console.log("User is typing");
-      socket.emit("typing","User is typing")
+      socket.emit("typing",`${nickname} Typing...`)
     })
 
     form.addEventListener("submit",(e)=>{
         e.preventDefault()
         if(input.value){
-            socket.emit('chat message',input.value)
+            socket.emit('chat message',{name:nickname,value:input.value})
+
+            var item = document.createElement('li')
+            item.textContent = input.value
+            messages.appendChild(item)
+            item.style.position = 'relative'
+            item.style.textAlign = 'right'
+            item.style.display = "block"
             input.value = ""
             typing.innerText = ""
+            window.scrollTo(0,document.body.scrollHeight)
 
         }
     })
@@ -62,11 +125,46 @@
         // console.log(msg);
         // item.textContent = msg.nickName +": typing"
         // messages.appendChild(item)
-        typing.innerText = "Typing..."
+        typing.innerText = msg
         // window.scrollTo(0,document.body.scrollHeight)
         console.log("Typing",msg);
     })
     
+    socket.on('onlineUsers',(users) => {
+      console.log("setting online users",onlineUsers.childNodes.length,onlineUsers.children.length)
+      onlineUsers.innerHTML = ""
+      onlineUsers.innerHTML = `<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>`
+      
+      // while (!onlineUsers.firstChild) {
+      //   onlineUsers.removeChild(onlineUsers.lastChild);
+      //   console.log(onlineUsers.lastChild,"last child",onlineUsers.childNodes.length)
+        
+      // }
+        for (let key in  users["users"]) {
+          console.log(key)
+
+          // if(users.hasOwnProperty(key)){
+              let item = document.createElement('a')
+                 item.textContent = users["users"][key]
+                 console.log(users["users"][key])
+                onlineUsers.appendChild(item)
+          // }
+          
+        }
+        console.log(users)
+      
+    })
+
+
+    function openNav() {
+      document.getElementById("mySidenav").style.width = "250px";
+
+
+    }
+
+function closeNav() {
+  document.getElementById("mySidenav").style.width = "0";
+}
     </script>
   </body>
 </html>
