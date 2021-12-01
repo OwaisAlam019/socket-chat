@@ -58,7 +58,7 @@
       #messages > li:nth-child(odd) { background: #efefef; }
     </style>
   </head>
-  <body onload="saveNickName()">
+  <body onload="">
     <span style="font-size:30px;cursor:pointer" onclick="openNav()">&#9776;</span>
     <div id="mySidenav" class="sidenav">
       <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
@@ -69,19 +69,41 @@
       <span id="typing"></span>
       <input id="input" autocomplete="off" /><button>Send</button>
     </form>
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- C:\work\repos\chat-example\socket-chat\node_modules\socket.io\client-dist\socket.io.js -->
+    <script src="node_modules/socket.io/client-dist/socket.io.js"></script>
     <script>
-    var socket = io();
+      var nickname = ""
+      console.log(window.localStorage.getItem('token'),"token");
+      if(window.localStorage.getItem('token') === null) {
+        saveNickName()
+      }else{
+        nickname = window.localStorage.getItem('token')
+      }
+    // saveNickName()
+    var socket = io("http://192.168.18.244:8080",{
+      transports: ['websocket', 'polling', 'flashsocket'],
+      query:{
+        token: `${nickname}`,
+        sessionId:window.localStorage.getItem('sessionId')
+      }
+    // auth: {
+    //     token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im92YWlzLmFsYW1Ac2l4bG9ncy5jb20iLCJpZCI6MjgsImlhdCI6MTYzNTkyNzU2MywiZXhwIjoxNjM4NTE5NTYzfQ.ssz1PQynUC0eiIFc8wclOsJ-VuamjmDjvpzfyQhCWLs'
+    // }
+    });
+ 
+    var selectedUser = null
     var form = document.getElementById("form")
     var input = document.getElementById("input")
     var messages = document.getElementById('messages')
     var onlineUsers = document.getElementById('mySidenav')
     var typing = document.getElementById('typing')
-    var nickname = ""
     
+    var onlineUsersArr;
    function saveNickName(){
-    nickname = prompt("Please Enter your name")
-      socket.emit("setNick",nickname)
+    nickname = prompt("Please Enter JWT")
+    window.localStorage.setItem("token",nickname)
+
+      // socket.emit("setNick",nickname)
     }
 
     input.addEventListener("input",(e) => {
@@ -92,7 +114,10 @@
     form.addEventListener("submit",(e)=>{
         e.preventDefault()
         if(input.value){
-            socket.emit('chat message',{name:nickname,value:input.value})
+          // console.log(onlineUsersArr[0],"User is sending message");
+          // onlineUsersArr[0].sessionId
+            socket.emit('privateMessage',{to:selectedUser,text:input.value})
+            // onlineUsersArr[0].sessionId
 
             var item = document.createElement('li')
             item.textContent = input.value
@@ -112,10 +137,28 @@
         typing.innerText = ""
     })
 
-    socket.on('chat message',(msg) => {
+    socket.on("connect_error", (err) => {
+      console.log(err instanceof Error); // true  
+      console.log(err.message); // not authorized 
+       console.log(err.data); // { content: "Please retry later" }
+    })
+
+    // socket.on("onlineUsers",(data)=>{
+    //   onlineUsersArr = data.users
+    //   console.log(onlineUsersArr,"online users")
+    // })
+    
+
+    socket.on("session",(data)=>{
+      console.log("connected",data)
+      window.localStorage.setItem("sessionId",data.sessionID)
+      window.localStorage.setItem("email",data.email)
+    })
+
+    socket.on('privateMessage',(msg) => {
         var item = document.createElement('li')
         console.log(msg);
-        item.textContent = msg.nickName +": "+ msg.message 
+        item.textContent = msg.from +": "+ msg.text 
         messages.appendChild(item)
         window.scrollTo(0,document.body.scrollHeight)
     })
@@ -134,24 +177,20 @@
       console.log("setting online users",onlineUsers.childNodes.length,onlineUsers.children.length)
       onlineUsers.innerHTML = ""
       onlineUsers.innerHTML = `<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>`
-      
-      // while (!onlineUsers.firstChild) {
-      //   onlineUsers.removeChild(onlineUsers.lastChild);
-      //   console.log(onlineUsers.lastChild,"last child",onlineUsers.childNodes.length)
-        
-      // }
-        for (let key in  users["users"]) {
-          console.log(key)
 
-          // if(users.hasOwnProperty(key)){
-              let item = document.createElement('a')
-                 item.textContent = users["users"][key]
-                 console.log(users["users"][key])
-                onlineUsers.appendChild(item)
-          // }
-          
+      users["users"].forEach(element => {
+        console.log(element,"element")
+        let item = document.createElement('a')
+        item.id = element.socketId
+        item.onclick = (event) => {
+          console.log("clicked",event.target.id)
+          selectedUser = event.target.id
+          closeNav()
+          // socket.emit("privateMessage",{to:element.sessionId,text:"Hello"})
         }
-        console.log(users)
+        item.textContent = element.Clothier?element.Clothier.firstName:element.User.fullName
+        onlineUsers.appendChild(item)
+      });
       
     })
 
