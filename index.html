@@ -156,6 +156,7 @@
     })
 
     socket.on('privateMessage',(msg) => {
+      console.log(msg,"private message")
         var item = document.createElement('li')
         console.log(msg);
         item.textContent = msg.from +": "+ msg.text 
@@ -174,7 +175,7 @@
     })
     
     socket.on('onlineUsers',(users) => {
-      console.log("setting online users",onlineUsers.childNodes.length,onlineUsers.children.length)
+      console.log("setting online users",users,onlineUsers.childNodes.length,onlineUsers.children.length)
       onlineUsers.innerHTML = ""
       onlineUsers.innerHTML = `<a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>`
 
@@ -189,7 +190,10 @@
           // socket.emit("privateMessage",{to:element.sessionId,text:"Hello"})
         }
         item.textContent = element.Clothier?element.Clothier.firstName:element.User.fullName
-        onlineUsers.appendChild(item)
+        if(element.socketId == window.localStorage.getItem('sessionId')){
+          item.textContent += "(Yourself)"
+        }
+          onlineUsers.appendChild(item)
       });
       
     })
