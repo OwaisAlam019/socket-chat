@@ -116,6 +116,7 @@
         if(input.value){
           // console.log(onlineUsersArr[0],"User is sending message");
           // onlineUsersArr[0].sessionId
+          console.log(selectedUser,"selectedUser");
             socket.emit('privateMessage',{to:selectedUser,text:input.value})
             // onlineUsersArr[0].sessionId
 
@@ -159,7 +160,7 @@
       console.log(msg,"private message")
         var item = document.createElement('li')
         console.log(msg);
-        item.textContent = msg.from +": "+ msg.text 
+        item.textContent = msg.from.name +": "+ msg.text 
         messages.appendChild(item)
         window.scrollTo(0,document.body.scrollHeight)
     })
